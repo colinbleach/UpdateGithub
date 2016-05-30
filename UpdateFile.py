@@ -3,11 +3,14 @@ import re
 import json
 import base64
 import requests
+import configparser
 
 #declare variables
-user = 'colinbleach'
-authKey = '2052b29434542041f3ae476fd39062197139e170'
-isUser = True
+config = configparser.ConfigParser()
+config.read('settings.ini')
+user = config['DEFAULT']['user']
+authKey = config['DEFAULT']['authKey']
+isUser = config['DEFAULT'].getboolean('isUser')
 
 #call the url
 def callApi(url):
@@ -20,6 +23,7 @@ def updateContent(content):
 
 #get all repositories for user
 def getRepos(user, isUser):
+    print("Getting list of repositories for user " + user)
     if(isUser):
         url = 'https://api.github.com/users/' + user + '/repos'
     else:
@@ -38,6 +42,7 @@ def encode(content):
 repos = getRepos(user, isUser)
 
 for repo in repos:
+    print("Updating file in repo " + repo['name'])
     try:
         url = 'https://api.github.com/repos/' + user + '/' + repo['name'] + '/contents/VERSION.txt'
         data = callApi(url)
@@ -50,5 +55,9 @@ for repo in repos:
         json_data = json.dumps(payload)
         headers = {"Authorization": "token " + authKey, "Content-Type": "application/json"}
         r = requests.put(url, data=json_data, headers = headers)
-    except:
+
+        if(r.status_code == 401):
+            print("Unauthorized please check auth token")
+    except Exception as e:
+        print("No such file Version.txt in repo" + repo['name'])
         continue
